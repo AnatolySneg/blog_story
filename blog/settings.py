@@ -44,6 +44,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
+MANUAL_APPS = [
+    'posts.apps.PostsConfig',
+]
+
+INSTALLED_APPS += MANUAL_APPS
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
