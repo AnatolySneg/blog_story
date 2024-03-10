@@ -1,20 +1,18 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET, require_http_methods
 from .models import Post
 from django.core import serializers
-import json
-from django.core.serializers.json import DjangoJSONEncoder
 from django.forms.models import model_to_dict
-from .forms import UserSignupForm, UserLoginForm, PostForm
+from .forms import UserSignupForm, UserSigninForm, PostForm
 from django.utils import timezone
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, login as django_login, logout as django_logout
 
 
 def index(request):
     return JsonResponse({"message": "Hello from index"})
-    # return HttpResponse("Hello from index")
 
 
 @require_GET
@@ -41,11 +39,11 @@ def post_publish(request):
             post.published_date = timezone.now()
             post.save()
             return redirect(post_detail, post_pk=post.pk)
-    else:
-        post_fields = {"title": "", "text": "", }
+    post_fields = {"title": "", "text": "", }
     return JsonResponse({"post_fields": post_fields})
 
 
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def post_edit(request, post_pk):
     # TODO: add author validation
@@ -53,32 +51,54 @@ def post_edit(request, post_pk):
     if request.method == "POST":
         form = PostForm(request.POST, instance=post)
         if form.is_valid():
-            post.save(commit=False)
+            post = form.save(commit=False)
             post.published_date = timezone.now()
             post.save()
             return redirect(post_detail, post_pk=post.pk)
-    else:
-        post_fields = {"title": post.title, "text": post.text}
+    post_fields = {"title": post.title, "text": post.text}
     return JsonResponse({"post_fields": post_fields})
 
 
-@require_http_methods(["DELETE"])
+@require_GET
 def post_delete(request, post_pk):
     # TODO: add author validation
     get_object_or_404(Post, pk=post_pk).delete()
     return redirect(home)
 
 
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def user_signup(request):
-    pass
+    if request.method == "POST":
+        user_form = UserSignupForm(request.POST)
+        if user_form.is_valid():
+            user = user_form.save()
+            auth_user = authenticate(username=user.username, password=request.POST.get('password1'))
+            if auth_user:
+                django_login(request, auth_user)
+            return redirect(home)
+    user_signup_fields = {"username": '', "email": '', "password1": '', "password2": ''}
+    return JsonResponse({"user_signup_fields": user_signup_fields})
 
 
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def user_signin(request):
-    pass
+    if request.method == "POST":
+        signin_form = UserSigninForm(request.POST)
+        if signin_form.is_valid():
+            user = signin_form.save()
+            auth_user = authenticate(username=user.username, password=user.password)
+            if auth_user:
+                django_login(request, auth_user)
+            return redirect(home)
+
+    user_signup_fields = {"username": '', "password": ''}
+    return JsonResponse({"user_signup_fields": user_signup_fields})
 
 
+# TODO: Add require_authentication decorator!!!
 @require_GET
 def user_signout(request):
-    pass
+    django_logout(request)
+    return redirect(home)
