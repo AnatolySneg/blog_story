@@ -22,7 +22,7 @@ def home(request):
 @require_GET
 def post_detail(request, post_pk):
     try:
-        post = get_object_or_404(Post, pk=post_pk, published_date__isnull=False)
+        post = get_object_or_404(Post, pk=post_pk)
         return JsonResponse({"post": model_to_dict(post)})
     except Http404:
         return JsonResponse({"error": f"Post with id={post_pk} does`t exist"}, status=404)
@@ -37,7 +37,7 @@ def post_publish(request):
         form = PostForm(request.POST)
         if form.is_valid():
             post = form.save(commit=False)
-            post.published_date = timezone.now()
+            post.edit_date = timezone.now()
             post.save()
             return redirect(post_detail, post_pk=post.pk)
         else:
@@ -53,14 +53,14 @@ def post_edit(request, post_pk):
     if not request.user.is_authenticated:
         return JsonResponse({"error": "Unauthorized"}, status=401)
     try:
-        post = get_object_or_404(Post, pk=post_pk, published_date__isnull=False)
-        if request.user != post.author or not request.user.is_staff:
+        post = get_object_or_404(Post, pk=post_pk)
+        if request.user.id != post.author.id:
             return JsonResponse({"error": "Another user is author of this post"}, status=403)
         if request.method == "POST":
             form = PostForm(request.POST, instance=post)
             if form.is_valid():
                 post = form.save(commit=False)
-                post.published_date = timezone.now()
+                post.edit_date = post.edit()
                 post.save()
                 return redirect(post_detail, post_pk=post.pk)
             else:

@@ -10,12 +10,6 @@ class UserSignupForm(UserCreationForm):
         fields = ['username', 'email', 'password1', 'password2']
 
 
-class UserSigninForm(ModelForm):
-    class Meta:
-        model = User
-        fields = ['username', 'password']
-
-
 class PostForm(ModelForm):
     class Meta:
         model = Post
