@@ -99,9 +99,9 @@ def user_signup(request):
         if user_form.is_valid():
             user = user_form.save()
             auth_user = authenticate(username=user.username, password=request.POST.get('password1'))
-            if auth_user:
-                django_login(request, auth_user)
-            return redirect(home)
+            django_login(request, auth_user)
+            return JsonResponse({"status": f"User {user.username}, has been registered"}, status=201)
+
     user_signup_fields = {"username": '', "email": '', "password1": '', "password2": ''}
     return JsonResponse({"user_signup_fields": user_signup_fields})
 
@@ -117,9 +117,8 @@ def user_signin(request):
         if signin_form.is_valid():
             user = signin_form.save()
             auth_user = authenticate(username=user.username, password=user.password)
-            if auth_user:
-                django_login(request, auth_user)
-            return redirect(home)
+            django_login(request, auth_user)
+            return JsonResponse({"status": f"User {auth_user.username}, has been authorised"}, status=200)
 
     user_signup_fields = {"username": '', "password": ''}
     return JsonResponse({"user_signup_fields": user_signup_fields})
@@ -129,5 +128,6 @@ def user_signin(request):
 def user_signout(request):
     if not request.user:
         return JsonResponse({"error": f"User is unauthorised"}, status=400)
+    username = request.user.username
     django_logout(request)
-    return redirect(home)
+    return JsonResponse({"status": f"User {username}, has been unauthorised"}, status=200)

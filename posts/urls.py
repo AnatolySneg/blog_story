@@ -16,3 +16,5 @@ users = [
     path("signin/", user_signin),
     path("signout/", user_signout),
 ]
+
+urlpatterns += users
