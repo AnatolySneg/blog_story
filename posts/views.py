@@ -4,17 +4,11 @@ from django.views.decorators.http import require_GET, require_http_methods
 from .models import Post
 from django.core import serializers
 from django.forms.models import model_to_dict
-from .forms import UserSignupForm, UserSigninForm, PostForm
+from .forms import UserSignupForm, PostForm
 from django.utils import timezone
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout
-from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth.decorators import login_required
-
-
-def index(request):
-    return JsonResponse({"message": "Hello from index"})
 
 
 @require_GET
@@ -40,13 +34,15 @@ def post_publish(request):
     if not request.user.is_authenticated:
         return JsonResponse({"error": "Unauthorized"}, status=401)
     if request.method == "POST":
-        # TODO: do some validation and raising Exceptions to handle
         form = PostForm(request.POST)
         if form.is_valid():
             post = form.save(commit=False)
             post.published_date = timezone.now()
             post.save()
             return redirect(post_detail, post_pk=post.pk)
+        else:
+            errors = dict(form.errors.items())
+            return JsonResponse({"errors": errors}, status=400)
     post_fields = {"title": "", "text": "", }
     return JsonResponse({"post_fields": post_fields})
 
@@ -61,13 +57,15 @@ def post_edit(request, post_pk):
         if request.user != post.author or not request.user.is_staff:
             return JsonResponse({"error": "Another user is author of this post"}, status=403)
         if request.method == "POST":
-            # TODO: do some validation and raising Exceptions to
             form = PostForm(request.POST, instance=post)
             if form.is_valid():
                 post = form.save(commit=False)
                 post.published_date = timezone.now()
                 post.save()
                 return redirect(post_detail, post_pk=post.pk)
+            else:
+                errors = dict(form.errors.items())
+                return JsonResponse({"errors": errors}, status=400)
         post_fields = {"title": post.title, "text": post.text}
         return JsonResponse({"post_fields": post_fields})
     except Http404:
@@ -92,15 +90,17 @@ def post_delete(request, post_pk):
 @require_http_methods(["GET", "POST"])
 def user_signup(request):
     if request.method == "POST":
-        if request.user:
+        if request.user.is_authenticated:
             return JsonResponse({"error": f"User {request.user.username} already authorised"}, status=400)
-        # TODO: do some validation and raising Exceptions to
         user_form = UserSignupForm(request.POST)
         if user_form.is_valid():
             user = user_form.save()
             auth_user = authenticate(username=user.username, password=request.POST.get('password1'))
             django_login(request, auth_user)
             return JsonResponse({"status": f"User {user.username}, has been registered"}, status=201)
+        else:
+            errors = dict(user_form.errors.items())
+            return JsonResponse({"errors": errors}, status=400)
 
     user_signup_fields = {"username": '', "email": '', "password1": '', "password2": ''}
     return JsonResponse({"user_signup_fields": user_signup_fields})
@@ -110,15 +110,20 @@ def user_signup(request):
 @require_http_methods(["GET", "POST"])
 def user_signin(request):
     if request.method == "POST":
-        if request.user:
-            return JsonResponse({"error": f"User {request.user.username} already authorised"}, status=400)
-        # TODO: do some validation and raising Exceptions to
-        signin_form = UserSigninForm(request.POST)
-        if signin_form.is_valid():
-            user = signin_form.save()
-            auth_user = authenticate(username=user.username, password=user.password)
+        if request.user.is_authenticated:
+            return JsonResponse({"error": f"User {request.user.username} already authorized"}, status=400)
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        if username is None or username == '':
+            return JsonResponse({"error": "Username required"}, status=400)
+        if password is None or password == '':
+            return JsonResponse({"error": "Password required"}, status=400)
+        auth_user = authenticate(request, username=username, password=password)
+        if auth_user is not None:
             django_login(request, auth_user)
-            return JsonResponse({"status": f"User {auth_user.username}, has been authorised"}, status=200)
+            return JsonResponse({"status": f"User {auth_user.username}, has been authorized"}, status=200)
+        else:
+            return JsonResponse({"error": "Invalid username or password"}, status=400)
 
     user_signup_fields = {"username": '', "password": ''}
     return JsonResponse({"user_signup_fields": user_signup_fields})
@@ -126,8 +131,10 @@ def user_signin(request):
 
 @require_GET
 def user_signout(request):
-    if not request.user:
+    if not request.user.is_authenticated:
         return JsonResponse({"error": f"User is unauthorised"}, status=400)
     username = request.user.username
     django_logout(request)
     return JsonResponse({"status": f"User {username}, has been unauthorised"}, status=200)
+
+# TODO: make images upload
