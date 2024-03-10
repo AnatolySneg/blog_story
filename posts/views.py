@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.views.decorators.http import require_GET, require_http_methods
 from .models import Post
 from django.core import serializers
@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout
-
+from django.core.exceptions import ObjectDoesNotExist
 
 def index(request):
     return JsonResponse({"message": "Hello from index"})
@@ -22,10 +22,14 @@ def home(request):
     return HttpResponse(data, content_type="application/json")
 
 
+# @csrf_exempt
 @require_GET
 def post_detail(request, post_pk):
-    post = get_object_or_404(Post, pk=post_pk, published_date__isnull=False)
-    return JsonResponse({"post": model_to_dict(post)})
+    try:
+        post = get_object_or_404(Post, pk=post_pk, published_date__isnull=False)
+        return JsonResponse({"post": model_to_dict(post)})
+    except Http404:
+        return JsonResponse({"error": f"Post with id={post_pk} does`t exist"}, status=404)
 
 
 @csrf_exempt
