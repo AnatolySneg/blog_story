@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout
+from django.core.paginator import Paginator
 
 
 @require_GET
