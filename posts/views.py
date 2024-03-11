@@ -14,7 +14,7 @@ from django.contrib.auth import authenticate, login as django_login, logout as d
 @require_GET
 def home(request):
     # TODO: Make Paginator from django.core.paginator
-    posts = Post.objects.filter(published_date__isnull=False)
+    posts = Post.objects.all()
     data = serializers.serialize("json", posts)
     return HttpResponse(data, content_type="application/json")
 
@@ -78,7 +78,7 @@ def post_delete(request, post_pk):
         return JsonResponse({"error": "Unauthorized"}, status=401)
     try:
         post = get_object_or_404(Post, pk=post_pk)
-        if request.user != post.author or not request.user.is_staff:
+        if request.user != post.author:
             return JsonResponse({"error": "Another user is author of this post"}, status=403)
         post.delete()
         return redirect(home)
