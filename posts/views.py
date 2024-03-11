@@ -25,7 +25,16 @@ def home(request):
 def post_detail(request, post_pk):
     try:
         post = get_object_or_404(Post, pk=post_pk)
-        return JsonResponse({"post": model_to_dict(post)})
+        serialized_post = {
+            'author': post.author.username if post.author else None,
+            'title': post.title,
+            'text': post.text,
+            'created_date': post.created_date,
+            'edit_date': post.edit_date,
+            # Serialize the image URL if available
+            'title_image': post.title_image.url if post.title_image else None,
+        }
+        return JsonResponse({"post": serialized_post})
     except Http404:
         return JsonResponse({"error": f"Post with id={post_pk} does`t exist"}, status=404)
 
@@ -36,10 +45,11 @@ def post_publish(request):
     if not request.user.is_authenticated:
         return JsonResponse({"error": "Unauthorized"}, status=401)
     if request.method == "POST":
-        form = PostForm(request.POST)
+        form = PostForm(request.POST, request.FILES)
         if form.is_valid():
             post = form.save(commit=False)
             post.edit_date = timezone.now()
+            post.author = request.user
             post.save()
             return redirect(post_detail, post_pk=post.pk)
         else:
@@ -59,7 +69,7 @@ def post_edit(request, post_pk):
         if request.user.id != post.author.id:
             return JsonResponse({"error": "Another user is author of this post"}, status=403)
         if request.method == "POST":
-            form = PostForm(request.POST, instance=post)
+            form = PostForm(request.POST, request.FILES, instance=post)
             if form.is_valid():
                 post = form.save(commit=False)
                 post.edit_date = post.edit()
