@@ -3,21 +3,28 @@ from django.http import HttpResponse, JsonResponse, Http404
 from django.views.decorators.http import require_GET, require_http_methods
 from .models import Post
 from django.core import serializers
-from django.forms.models import model_to_dict
 from .forms import UserSignupForm, PostForm
 from django.utils import timezone
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
-# TODO: make images upload.
 
 @require_GET
 def home(request):
-    # TODO: Make Paginator from django.core.paginator
-    posts = Post.objects.all()
+    posts = Post.objects.all().order_by("-edit_date")
+
+    paginator = Paginator(posts, 3)
+    page = request.GET.get('page')
+    try:
+        posts = paginator.page(page)
+    except PageNotAnInteger:
+        posts = paginator.page(1)
+    except EmptyPage:
+        posts = paginator.page(paginator.num_pages)
     data = serializers.serialize("json", posts)
+
     return HttpResponse(data, content_type="application/json")
 
 
