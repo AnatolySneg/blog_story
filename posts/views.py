@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout
 from django.core.paginator import Paginator
 
+# TODO: make images upload.
 
 @require_GET
 def home(request):
@@ -137,5 +138,3 @@ def user_signout(request):
     username = request.user.username
     django_logout(request)
     return JsonResponse({"status": f"User {username}, has been unauthorised"}, status=200)
-
-# TODO: make images upload
