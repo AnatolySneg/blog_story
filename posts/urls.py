@@ -1,6 +1,8 @@
 from django.urls import path
 from .views import home, post_detail, post_publish, post_edit, \
     post_delete, user_signup, user_signin, user_signout
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path("home/", home, name="home"),
@@ -17,3 +19,5 @@ users = [
 ]
 
 urlpatterns += users
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

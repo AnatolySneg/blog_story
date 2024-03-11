@@ -45,7 +45,7 @@ def post_publish(request):
         else:
             errors = dict(form.errors.items())
             return JsonResponse({"errors": errors}, status=400)
-    post_fields = {"title": "", "text": "", }
+    post_fields = {"title": "", "text": "", "title_image": ""}
     return JsonResponse({"post_fields": post_fields})
 
 
@@ -68,7 +68,7 @@ def post_edit(request, post_pk):
             else:
                 errors = dict(form.errors.items())
                 return JsonResponse({"errors": errors}, status=400)
-        post_fields = {"title": post.title, "text": post.text}
+        post_fields = {"title": post.title, "text": post.text, "title_image": post.title_image}
         return JsonResponse({"post_fields": post_fields})
     except Http404:
         return JsonResponse({"error": f"Post with id={post_pk} does`t exist"}, status=404)
